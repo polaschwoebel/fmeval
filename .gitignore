@@ -36,3 +36,6 @@ poetry-installer-*
 tmp
 python*
 .vscode
+
+examples/llama_guard/openai-moderation-api-evaluation.json
+examples/llama_guard/results/
