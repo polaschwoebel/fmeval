@@ -33,8 +33,8 @@ lint() {
     echo "===================="
     echo "Note: This only syncs poetry.lock with pyproject.toml.  If you wish to update all downstream dependencies, run 'poetry update'"
 
-    install_poetry_version 1.2.0
-    poetry lock --check || (poetry lock --no-update && poetry lock --check)
+    install_poetry
+    poetry check --lock || (poetry lock --no-update && poetry check --lock)
     echo ""
 
     echo "Lint: SUCCESS"
@@ -161,7 +161,7 @@ create_commit_hash_file(){
 }
 
 install_poetry() {
-    install_poetry_version 1.2.0
+    install_poetry_version 1.8.2
 }
 
 install_deps() {

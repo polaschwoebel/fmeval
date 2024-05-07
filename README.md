@@ -14,7 +14,7 @@ The library contains
 ## Installation
 `fmeval` is developed under python3.10. To install the package, simply run:
 
-```
+```sh
 pip install fmeval
 ```
 
@@ -27,7 +27,7 @@ The main steps for using `fmeval` are:
 2. Use any of the supported [eval_algorithms](https://github.com/aws/fmeval/tree/main/src/fmeval/eval_algorithms).
 
 For example,
-```
+```python
 from fmeval.eval_algorithms.toxicity import Toxicity, ToxicityConfig
 
 eval_algo = Toxicity(ToxicityConfig())
@@ -40,7 +40,7 @@ We have our built-in datasets configured, which are consumed for computing the s
 You can choose to use a custom dataset in the following manner.
 1. Create a [DataConfig](https://github.com/aws/fmeval/blob/main/src/fmeval/data_loaders/data_config.py)
    for your custom dataset
-```
+```python
 config = DataConfig(
     dataset_name="custom_dataset",
     dataset_uri="./custom_dataset.jsonl",
@@ -51,7 +51,7 @@ config = DataConfig(
 ```
 
 2. Use an eval algorithm with a custom dataset
-```
+```python
 eval_algo = Toxicity(ToxicityConfig())
 eval_output = eval_algo.evaluate(model=model_runner, dataset_config=config)
 ```
@@ -60,13 +60,19 @@ eval_output = eval_algo.evaluate(model=model_runner, dataset_config=config)
 [examples](https://github.com/aws/fmeval/tree/main/examples) for more details around the usage of
 eval algorithms.*
 
+## Telemetry
+`fmeval` has telemetry enabled for tracking the usage of AWS-provided/hosted LLMs.
+This data is tracked using the number of SageMaker or JumpStart `ModelRunner` objects that get created.
+Telemetry can be disabled by setting the `DISABLE_FMEVAL_TELEMETRY` environment variable to `true`.
+
+
 ## Troubleshooting
 
 1. Users running `fmeval` on a Windows machine may encounter the error `OSError: [Errno 0] AssignProcessToJobObject() failed` when `fmeval` internally calls `ray.init()`. This OS error is a known Ray issue, and is detailed [here](https://github.com/ray-project/ray/issues/21994). Multiple users have reported that installing Python from the [official Python website](https://www.python.org/downloads/windows/) rather than the Microsoft store fixes this issue. You can view more details on limitations of running Ray on Windows on [Ray's webpage](https://docs.ray.io/en/latest/ray-overview/installation.html#windows-support).
 
 2. If you run into the error `error: can't find Rust compiler` while installing `fmeval` on a Mac, please try running the steps below.
 
-```
+```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup install 1.72.1
 rustup default 1.72.1-aarch64-apple-darwin
@@ -84,11 +90,34 @@ set the environment variable `PARALLELIZATION_FACTOR` to a value that suits your
 
 ### Setup and the use of `devtool`
 Once you have created a virtual environment with python3.10, run the following command to set up the development environment:
-```
+```sh
 ./devtool install_deps_dev
 ./devtool install_deps
 ./devtool all
 ```
+
+**Note**: If you are on a Mac, the `install_poetry_version` devtool command may fail when running the poetry installation script. If there is a failure, you should get error logs sent to a file with a name like `poetry-installer-error-cvulo5s0.log`. Open the logs, and if the error message looks like the following:
+```
+dyld[10908]: Library not loaded: @loader_path/../../../../Python.framework/Versions/3.10/Python
+  Referenced from: <8A5DEEDB-CE8E-325F-88B0-B0397BD5A5DE> /Users/daniezh/Library/Application Support/pypoetry/venv/bin/python3
+  Reason: tried: '/Users/daniezh/Library/Application Support/pypoetry/venv/bin/../../../../Python.framework/Versions/3.10/Python' (no such file), '/Library/Frameworks/Python.framework/Versions/3.10/Python' (no such file), '/System/Library/Frameworks/Python.framework/Versions/3.10/Python' (no such file, not in dyld cache)
+
+Traceback:
+
+  File "<string>", line 923, in main
+  File "<string>", line 562, in run
+```
+then you will need to tweak the poetry installation script and re-run it.
+
+Steps:
+1. `curl -sSL https://install.python-poetry.org > poetry_script.py`
+2. Change the `symlinks` argument in `builder = venv.EnvBuilder(clear=True, with_pip=True, symlinks=False)` to `True`. See mionker's comment [here](https://github.com/python-poetry/install.python-poetry.org/issues/56) for an explanation.
+3. `python poetry_script.py --version 1.8.2` (where `1.8.2` is the version listed in `devtool`; this may change after the time of this writing).
+4. Confirm installation via `poetry --version`
+
+Additionally, if you already have an existing version of Poetry installed and want to install a new version, before you re-run the above command, you will need to uninstall Poetry:
+
+`curl -sSL https://install.python-poetry.org | python3 - --uninstall`
 
 Before submitting a PR, rerun `./devtool all` for testing and linting. It should run without errors.
 
@@ -115,7 +144,7 @@ We represent the concept of a record-level transformation using the `Transform` 
 
 Let's implement a `Transform` for a simple, toy metric.
 
-```
+```python
 class NumSpaces(Transform):
     """
     Augments the input record (which contains some text data)
@@ -129,7 +158,7 @@ class NumSpaces(Transform):
 
 One issue with this simple example is that the keys used for the input text data and the output data are both hard-coded. This generally isn't desirable, so let's improve on our running example.
 
-```
+```python
 class NumSpaces(Transform):
     """
     Augments the input record (which contains some text data)
@@ -158,7 +187,7 @@ Here, we implement a pipeline for a very simple evaluation. The steps are:
 2. Feed the prompts to a `ModelRunner` to get the model outputs
 3. Compute the "number of spaces" metric we defined above
 
-```
+```python
 # Use the built-in utility Transform for generating prompts
 gen_prompt = GeneratePrompt(
     input_keys="model_input",
