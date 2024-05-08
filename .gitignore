@@ -37,5 +37,6 @@ tmp
 python*
 .vscode
 
-examples/llama_guard/openai-moderation-api-evaluation.json
 examples/llama_guard/results/
+examples/llama_guard/openai-moderation-api-evaluation-short.jsonl
+examples/llama_guard/openai-moderation-api-evaluation.jsonl
