@@ -4,22 +4,28 @@ from llama_guard_prompts import TASK, INSTRUCTION, UNSAFE_CONTENT_CATEGORIES_OPE
 from typing import List
 from sagemaker.jumpstart.model import JumpStartModel
 import sagemaker
+from sagemaker.jumpstart.payload_utils import _construct_payload
 
-def retrieve_or_deploy_llama_guard(endpoint_name="meta-textgeneration-llama-guard-7b-2024-05-03-12-04-07-112"):
+
+def retrieve_or_deploy_llama(model_type="llama-guard"):
+    # or  use "meta-textgeneration-llama-2-7b" for regular llama
     # These are needed, even if you use an existing endpoint, by a cell later in this notebook.
-    model_id, model_version = "meta-textgeneration-llama-guard-7b", "1.*"
+    model_id = "meta-textgeneration-llama-guard-7b" if model_type=='llama-guard' else "meta-textgeneration-llama-2-7b"
+    endpoint_names = {"llama-guard": "meta-textgeneration-llama-guard-7b-2024-05-10-11-20-30-988", 
+                     "llama": "meta-textgeneration-llama-2-7b-2024-05-10-11-29-11-532"}
+    model_version = "1.1" if model_type=='llama-guard' else '4.1.0' # llama-guard 1.2 has problem with return_full_text
     model = JumpStartModel(model_id=model_id, model_version=model_version)
 
     # check whether endpoint exists
     try:  
         predictor = sagemaker.predictor.Predictor(
-            endpoint_name=endpoint_name,
+            endpoint_name=endpoint_names[model_type],
             serializer=sagemaker.serializers.JSONSerializer(),
             deserializer = sagemaker.deserializers.JSONDeserializer()
         )
         # sample invocation to see whether 
-        example_payload = model.retrieve_all_examples()[0]
-        response = predictor.predict(example_payload.body)
+        # example_payload = model.retrieve_all_examples()[0]
+        response = predictor.predict({"inputs": "Hello world! Today is"}) # example_payload.body)
         print('Found existing endpoint!')
 
     except:
@@ -120,3 +126,40 @@ def format_guard_messages(
     )
         
     return message
+
+
+def parse_output_strict(response, dataset_category_names):
+    if response.strip() == 'safe':
+        response_binary = 'safe'
+        response_category = ['']
+    elif response.strip().startswith('unsafe'):
+        response_binary = 'unsafe'
+        response_category = []
+        for category in dataset_category_names:
+            if category in response:
+                response_category.append(category)
+    else:
+        print('invalid answer')
+        response_binary = 'invalid'
+        response_category = ['']
+    return response_binary, response_category
+
+
+def parse_output_fuzzy(response, dataset_category_names):
+    if 'unsafe' in response:
+        response_binary = 'unsafe'
+        response_category = []
+        for category in dataset_category_names:
+            if category in response:
+                response_category.append(category)
+                
+    elif 'safe' in response:
+        response_binary = 'safe'
+        response_category = ['']
+        
+    else:
+        print('invalid answer')
+        print(response)
+        response_binary = 'invalid'
+        response_category = ['']
+    return response_binary, response_category

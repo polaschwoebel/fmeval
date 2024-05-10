@@ -25,6 +25,18 @@ def create_parser():
         "--adaptation_strategy",
         type=str,
         default="no-adapt",
-        help="How to perform adaptation. One of ['no-adapt', 'zero-shot', 'few-shot'].z",
+        help="How to perform adaptation. One of ['no-adapt', 'zero-shot', 'few-shot'].",
+    )
+    parser.add_argument(
+        "--model", 
+        type=str,
+        default="llama-guard",
+        help="Which model to use? llama or llama-guard",
+    )
+    parser.add_argument(
+        "--output_parser", 
+        type=str,
+        default="strict",
+        help="Parse outputs strict or fuzzy?",
     )
     return parser
