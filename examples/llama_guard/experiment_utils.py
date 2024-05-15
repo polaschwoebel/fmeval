@@ -4,14 +4,18 @@ import pandas as pd
 
 
 def compute_accuracy(results_df):
-    y_true= (results_df['label_binary'] == 'unsafe')
+    y_true = (results_df['label_binary'] == 'unsafe')
     y_pred = (results_df['response_binary'] == 'unsafe')
+    # manually set to the false reply if answer is invalid
+    # this way, invalid answers will always counted as incorrect
+    y_pred[results_df['response_binary'] == 'invalid'] = (1 - y_true).astype(bool) 
 
     accuracy = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred)
     return {'accuracy': accuracy, 'precision': precision, 'recall': recall, 'f1': f1}
+
 
 
 def load_baseline_results(baseline='toxigen'): # or 'detoxify'

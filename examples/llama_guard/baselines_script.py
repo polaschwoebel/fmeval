@@ -35,22 +35,22 @@ def run_baseline(save_datasets=False, baseline='detoxify'): # or 'toxigen' or 'c
         os.rename('/tmp/eval_results/toxicity_openai-mod.jsonl', f'results/baselines/dataset=openai-content-moderation_{baseline}.jsonl')
     
     # TODO
-    # elif baseline == 'claude':
-    #     claude = BedrockModelRunner(
-    #         model_id='anthropic.claude-3-opus',
-    #         output='completion',
-    #         content_template='{"prompt": $prompt, "max_tokens_to_sample": 500}'
-    #     )   
-    #     OPENAI_MOD = DataConfig(
-    #         dataset_name='openai-mod',
-    #         dataset_uri='openai-moderation-api-evaluation-short.jsonl',
-    #         dataset_mime_type=MIME_TYPE_JSONLINES,
-    #         model_input_location="prompt",
-    #     )
-    #     toxicity_config = ToxicityConfig() # toxicity model doesn't matter as we are only interested in model outputs
-    #     toxicity_eval = Toxicity(toxicity_config)
-    #     eval_results = toxicity_eval.evaluate(model = claude, save=True, prompt_template="Human: $feature\n\nAssistant:\n", dataset_config=OPENAI_MOD, num_records=dataset_filtered.shape[0])
-    #     os.rename('/tmp/eval_results/toxicity_openai-mod.jsonl', f'results/baselines/dataset=openai-content-moderation_{baseline}.jsonl')
+    elif baseline == 'claude':
+        claude = BedrockModelRunner(
+            model_id='anthropic.claude-3-opus',
+            output='completion',
+            content_template='{"prompt": $prompt, "max_tokens_to_sample": 500}'
+        )   
+        OPENAI_MOD = DataConfig(
+            dataset_name='openai-mod',
+            dataset_uri='openai-moderation-api-evaluation-short.jsonl',
+            dataset_mime_type=MIME_TYPE_JSONLINES,
+            model_input_location="prompt",
+        )
+        toxicity_config = ToxicityConfig() # toxicity model doesn't matter as we are only interested in model outputs
+        toxicity_eval = Toxicity(toxicity_config)
+        eval_results = toxicity_eval.evaluate(model = claude, save=True, prompt_template=f"Human: {message}\n\nAssistant:\n", dataset_config=OPENAI_MOD, num_records=dataset_filtered.shape[0])
+        os.rename('/tmp/eval_results/toxicity_openai-mod.jsonl', f'results/baselines/dataset=openai-content-moderation_{baseline}.jsonl')
 
     return 
 

@@ -5,9 +5,11 @@ from tqdm import tqdm
 import pandas as pd
 from datasets import load_dataset
 import command_line_parser
+from fmeval.model_runners.bedrock_model_runner import BedrockModelRunner
 
 
-def run_experiment(dataset, predictor, adaption, parser_fn):
+
+def run_experiment(dataset, model_name, adaption, parser_fn):
     results = defaultdict(list)
     # load dataset
     if dataset == 'openai-content-moderation': 
@@ -40,15 +42,29 @@ def run_experiment(dataset, predictor, adaption, parser_fn):
         results['label_categories'].append(labels)
         results['prompt'].append(prompt)
         
-        # construct input to llama-guard
         message = format_guard_messages(prompt, unsafe_content_categories=category_descriptions, few_shot_examples=few_shot_examples)
-        payload_input_guard = {"inputs": message, "return_full_text": False}
+        if model_name == 'llama-guard':
+            predictor = retrieve_or_deploy_llama(args.model)
+            # construct input to llama-guard
+            input_guard = {"inputs": message, "return_full_text": False}
+            # call model
+            response_input_guard = predictor.predict(input_guard)
+            # unpack response
+            response = response_input_guard[0]["generated_text"]
+
+        elif model_name == 'claude':
+            predictor = BedrockModelRunner(
+                model_id="anthropic.claude-v2", #"anthropic.claude-3-sonnet-20240229-v1:0" yields an error
+                output='completion',
+                content_template='{"prompt": $prompt, "max_tokens_to_sample": 500}'
+            )
+            input_guard = f"Human: {message}\n\nAssistant:\n"
+            # call model
+            response_input_guard = predictor.predict(input_guard)
+            # unpack response
+            response = response_input_guard[0]
         
-        # call model
-        response_input_guard = predictor.predict(payload_input_guard)
-        
-        # unpack response
-        response = response_input_guard[0]["generated_text"]
+        # breakpoint()
         # return_full_text is broken for some models, hack to fix this
         if response.startswith(message):
             response = response.split(message)[1]
@@ -66,12 +82,11 @@ def run_experiment(dataset, predictor, adaption, parser_fn):
 
 def main(args):
     experiment_name = f"{args.experiment_folder}/dataset={args.dataset}_adaptation-strategy={args.adaptation_strategy}_model={args.model}_output-parser={args.output_parser}.csv"
-    predictor = retrieve_or_deploy_llama(args.model)
     if args.output_parser == 'strict':
         parser_fn = parse_output_strict
     elif args.output_parser == 'fuzzy':
         parser_fn = parse_output_fuzzy
-    results_df = run_experiment(args.dataset, predictor, args.adaptation_strategy, parser_fn)
+    results_df = run_experiment(args.dataset, args.model, args.adaptation_strategy, parser_fn)
     results_df.to_csv(experiment_name)
     
     

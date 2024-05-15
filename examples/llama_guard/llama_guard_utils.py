@@ -129,10 +129,10 @@ def format_guard_messages(
 
 
 def parse_output_strict(response, dataset_category_names):
-    if response.strip() == 'safe':
+    if response.strip().lower() == 'safe':
         response_binary = 'safe'
         response_category = ['']
-    elif response.strip().startswith('unsafe'):
+    elif response.strip().lower().startswith('unsafe'):
         response_binary = 'unsafe'
         response_category = []
         for category in dataset_category_names:
@@ -146,14 +146,14 @@ def parse_output_strict(response, dataset_category_names):
 
 
 def parse_output_fuzzy(response, dataset_category_names):
-    if 'unsafe' in response:
+    if 'unsafe' in response.lower():
         response_binary = 'unsafe'
         response_category = []
         for category in dataset_category_names:
             if category in response:
                 response_category.append(category)
                 
-    elif 'safe' in response:
+    elif 'safe' in response.lower():
         response_binary = 'safe'
         response_category = ['']
         
