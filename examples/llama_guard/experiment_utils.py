@@ -4,6 +4,7 @@ import pandas as pd
 
 
 def compute_accuracy(results_df):
+    # print(results_df.shape)
     y_true = (results_df['label_binary'] == 'unsafe')
     y_pred = (results_df['response_binary'] == 'unsafe')
     # manually set to the false reply if answer is invalid

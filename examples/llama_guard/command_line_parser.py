@@ -13,7 +13,7 @@ def create_parser():
     """
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
-        "--dataset", type=str, default="openai-content-moderation", help="Which dataset to use."
+        "--dataset_name", type=str, default="openai-content-moderation", help="Which dataset to use."
     )
     parser.add_argument(
         "--experiment_folder", 

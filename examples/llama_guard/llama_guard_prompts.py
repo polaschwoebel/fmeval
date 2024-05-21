@@ -59,7 +59,7 @@ Should
 - Provide information regarding appropriate health resources to people who imply or express the desire to harm themselves.\n"""
 
 UNSAFE_CONTENT_CATEGORIES_LLAMA = O1 + O2 + O3 + O4 + O5 + O6
-
+UNSAFE_CONTENT_CATEGORY_NAMES_LLAMA = ['O1', 'O2', 'O3', 'O4', 'O5', 'O6']
 
 ###### OpenAI content moderation categories
 H = """H: Hate.
@@ -95,7 +95,7 @@ Content that depicts death, violence, or physical injury in graphic detail.\n
 """
 
 UNSAFE_CONTENT_CATEGORIES_OPENAI = H + HR + SH + S + S3 + V + V2
-
+UNSAFE_CONTENT_CATEGORY_NAMES_OPENAI = ['H', 'HR', 'SH', 'S', 'S3', 'V', 'V2']
 
 ###### Test: Gender-inclusive categories
 C1 = """C1: Male pronouns.
@@ -105,3 +105,4 @@ C2 = """C2: Female pronouns.
 Content that is not inclusive because it uses female (she/her) pronouns only.\n"""
 
 UNSAFE_CONTENT_CATEGORIES_GENDER = C1 + C2
+UNSAFE_CONTENT_CATEGORY_NAMES_GENDER = ['C1', 'C2']
