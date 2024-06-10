@@ -1,0 +1,1 @@
+python experiment_script.py --model llama-guard --output_parser strict --dataset_name do-not-answer --experiment_folder results/do_not_answer --adaptation_strategy few-shot 

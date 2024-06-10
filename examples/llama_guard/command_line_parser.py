@@ -39,4 +39,18 @@ def create_parser():
         default="strict",
         help="Parse outputs strict or fuzzy?",
     )
+    parser.add_argument(
+        "--seed", 
+        type=int,
+        default=0,
+        help="Random seed for selection of few shot examples.",
+    )
+    parser.add_argument(
+        "--nr_shots", 
+        type=int,
+        default=2,
+        help="Number of few shot examples per category.",
+    )
+    parser.add_argument('--manual_examples', action='store_true')
+
     return parser

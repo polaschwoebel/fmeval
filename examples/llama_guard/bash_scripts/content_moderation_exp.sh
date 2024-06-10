@@ -1,0 +1,1 @@
+python experiment_script.py --model llama-guard --output_parser strict --dataset_name openai-content-moderation --experiment_folder results --adaptation_strategy few-shot

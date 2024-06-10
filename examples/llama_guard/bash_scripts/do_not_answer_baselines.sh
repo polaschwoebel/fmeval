@@ -1,0 +1,2 @@
+python baselines_script.py --model detoxify --dataset_name do-not-answer --experiment_folder results/do_not_answer
+python baselines_script.py --model toxigen --dataset_name do-not-answer --experiment_folder results/do_not_answer

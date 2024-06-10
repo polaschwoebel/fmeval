@@ -40,3 +40,4 @@ python*
 examples/llama_guard/results/
 examples/llama_guard/openai-moderation-api-evaluation-short.jsonl
 examples/llama_guard/openai-moderation-api-evaluation.jsonl
+examples/llama_guard/data/
