@@ -10,7 +10,7 @@ from llama_guard_utils import format_guard_messages
 from experiment_utils import load_data
 import command_line_parser
 
-def run_baseline(dataset_name, experiment_name, save_datasets=False, baseline='detoxify'): # or 'toxigen' or 'claude'
+def run_baseline(dataset_name, experiment_name, save_datasets=True, baseline='detoxify'): # or 'toxigen' or 'claude'
     # load dataset
     dataset_filtered, dataset_category_names = load_data(dataset_name)
     

@@ -20,6 +20,10 @@ def compute_accuracy(results_df):
 
 
 def load_data(dataset_name): 
+    drop_cols_dna = ['GPT4_response', 'GPT4_harmful', 'GPT4_action', 'ChatGPT_response', 'ChatGPT_harmful', 'ChatGPT_action', 'Claude_response',
+                     'Claude_harmful', 'Claude_action', 'ChatGLM2_response', 'ChatGLM2_harmful', 'ChatGLM2_action', 'llama2-7b-chat_response',
+                     'llama2-7b-chat_harmful', 'llama2-7b-chat_action', 'vicuna-7b_response', 'vicuna-7b_harmful', 'vicuna-7b_action',
+                     'types_of_harm']
     if dataset_name == 'openai-content-moderation': 
         dataset = load_dataset("mmathys/openai-moderation-api-evaluation")
         dataset_category_names = list(dataset['train'].features.keys())[1:]
@@ -43,7 +47,17 @@ def load_data(dataset_name):
         dataset = dataset['train'].flatten().to_pandas().set_index('id')
         dataset.rename(columns={'question': 'prompt'}, inplace=True)
         categories = pd.get_dummies(dataset['types_of_harm'])
-        dataset = pd.concat([dataset, categories], axis=1).drop('types_of_harm', axis=1)
+        dataset = pd.concat([dataset, categories], axis=1).drop(drop_cols_dna, axis=1)
+        dataset_category_names = list(categories.columns)
+    elif dataset_name == 'do-not-answer-extended':
+        dataset = load_dataset("LibrAI/do-not-answer")
+        dataset = dataset['train'].flatten().to_pandas().set_index('id')
+        dataset.rename(columns={'question': 'prompt'}, inplace=True)
+        # extend with safe categories
+        dataset_neutral = pd.read_json("data/do-not-answer-safe.jsonl", lines=True)
+        dataset = pd.concat([dataset, dataset_neutral]).reset_index(drop=True)
+        categories = pd.get_dummies(dataset['types_of_harm'])
+        dataset = pd.concat([dataset, categories], axis=1).drop(drop_cols_dna, axis=1)
         dataset_category_names = list(categories.columns)
     else:
         raise NotImplementedError

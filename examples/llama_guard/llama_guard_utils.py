@@ -11,7 +11,7 @@ def retrieve_or_deploy_llama(model_type="llama-guard"):
     # or  use "meta-textgeneration-llama-2-7b" for regular llama
     # These are needed, even if you use an existing endpoint, by a cell later in this notebook.
     model_id = "meta-textgeneration-llama-guard-7b" if model_type=='llama-guard' else "meta-textgeneration-llama-2-7b"
-    endpoint_names = {"llama-guard": "meta-textgeneration-llama-guard-7b-2024-06-03-12-48-37-395", 
+    endpoint_names = {"llama-guard": "meta-textgeneration-llama-guard-7b-2024-06-14-12-18-55-125", 
                      "llama": "meta-textgeneration-llama-2-7b-2024-05-10-11-29-11-532"}
     model_version = "1.2" if model_type=='llama-guard' else '4.1.0' # llama-guard 1.2 has problem with return_full_text
     model = JumpStartModel(model_id=model_id, model_version=model_version)
@@ -52,7 +52,7 @@ def get_unsafe_categories(taxonomy='llama-guard'):
         unsafe_categories = UNSAFE_CONTENT_CATEGORIES_OPENAI
     elif taxonomy == 'gender':
         unsafe_categories = UNSAFE_CONTENT_CATEGORIES_GENDER
-    elif taxonomy == 'do-not-answer':
+    elif taxonomy == 'do-not-answer' or taxonomy == 'do-not-answer-extended':
         unsafe_categories = UNSAFE_CONTENT_CATEGORIES_DNA
     return unsafe_categories
 
@@ -63,7 +63,7 @@ def get_unsafe_category_names(taxonomy='llama-guard'):
         unsafe_categories = UNSAFE_CONTENT_CATEGORY_NAMES_OPENAI
     elif taxonomy == 'gender':
         unsafe_categories = UNSAFE_CONTENT_CATEGORY_NAMES_GENDER
-    elif taxonomy == 'do-not-answer':
+    elif taxonomy == 'do-not-answer' or taxonomy == 'do-not-answer-extended':
         unsafe_categories = UNSAFE_CONTENT_CATEGORY_NAMES_DNA
     return unsafe_categories
 

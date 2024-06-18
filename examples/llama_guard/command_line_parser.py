@@ -1,8 +1,5 @@
 import argparse
 
-
-
-
 def create_parser():
     """
     Creates argparser to handle command line arguments for experiment scripts.
@@ -52,5 +49,5 @@ def create_parser():
         help="Number of few shot examples per category.",
     )
     parser.add_argument('--manual_examples', action='store_true')
-
+    parser.add_argument('--compute_embeddings', action='store_true')
     return parser

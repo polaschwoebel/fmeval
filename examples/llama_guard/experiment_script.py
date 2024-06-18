@@ -8,8 +8,9 @@ import pandas as pd
 import command_line_parser
 from fmeval.model_runners.bedrock_model_runner import BedrockModelRunner, ClaudeSonnetModelRunner
 from experiment_utils import load_data
+import ollama 
 
-def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_name, seed, nr_shots, manual_examples):
+def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_name, seed, nr_shots, manual_examples, compute_embeddings):
     results = defaultdict(list)
     # load dataset
     dataset, dataset_category_names = load_data(dataset_name)
@@ -44,6 +45,10 @@ def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_nam
             output='completion',
             content_template='{"prompt": $prompt, "max_tokens_to_sample": 500, "role": "user"}' # dummy content template
         )
+    if model_name == 'llama3' or model_name == 'llama3:70b':
+        # do this locally for now so we have embeddings
+        model_status = ollama.pull(model_name)
+        assert model_status['status'] == 'success'
     
     
     # evaluate on the whole dataset (naive implementation)
@@ -58,6 +63,19 @@ def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_nam
         
         message = format_guard_messages(prompt, unsafe_content_categories=category_descriptions, few_shot_examples=few_shot_examples, dataset_name=dataset_name)
         
+        if compute_embeddings:
+            # prompt only
+            embedding = ollama.embeddings(
+                model=model_name,
+                prompt=prompt,
+                )['embedding']
+            results['prompt_embeddings'].append(embedding)
+            # prompt + prompt template
+            embedding_full = ollama.embeddings(
+                model='llama3',
+                prompt=message + '\ It is very important to follow this format, no extra text.',
+                )['embedding']
+            results['prompt_plus_template_embeddings'].append(embedding_full)
         
         if model_name == 'llama-guard':
             # construct input to llama-guard
@@ -81,6 +99,11 @@ def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_nam
             response_input_guard = predictor.predict(message)
             # unpack response
             response = response_input_guard[0]
+            
+        elif model_name == 'llama3' or model_name == 'llama3:70b':
+            # do this locally for now so we have embeddings
+            model_status = ollama.generate('llama3', prompt = message + '\It is very important to follow this format, no extra text.') # need to include this because llama3 is verbose
+            response = model_status['response']
             
         else: 
             print('Invalid `model_name`.')
@@ -118,7 +141,8 @@ def main(args):
     elif args.output_parser == 'fuzzy':
         raise NotImplementedError
         #parser_fn = parse_output_fuzzy
-    results_df = run_experiment(args.dataset_name, args.model, args.adaptation_strategy, parser_fn, experiment_name + '.csv', args.seed, args.nr_shots, args.manual_examples)
+    results_df = run_experiment(args.dataset_name, args.model, args.adaptation_strategy, parser_fn, experiment_name + '.csv', args.seed, 
+                                args.nr_shots, args.manual_examples, compute_embeddings=args.compute_embeddings)
     # results_df.to_csv(experiment_name) # write to file every iteration instead
     
     
