@@ -18,6 +18,14 @@ def create_parser():
         default="results",
         help="Where to save results.",
     )
+    
+    parser.add_argument(
+        "--results_path", 
+        type=str,
+        default="",
+        help="Option to hardcode results file name.",
+    )
+        
     parser.add_argument(
         "--adaptation_strategy",
         type=str,
@@ -50,4 +58,38 @@ def create_parser():
     )
     parser.add_argument('--manual_examples', action='store_true')
     parser.add_argument('--compute_embeddings', action='store_true')
+    
+    parser.add_argument(
+        "--surrogate_labels", 
+        type=str,
+        default="ground_truth",
+        help="Train surrogate model on ground truth labels or model predictions?",
+    )
+    
+    parser.add_argument(
+        "--embeddings_path", 
+        type=str,
+        default="",
+        help="From where to load the embeddings?",
+    )
+    
+    parser.add_argument(
+        "--mcmc_path", 
+        type=str,
+        default="",
+        help="From where to load the mcmc results?",
+    )  
+    
+    parser.add_argument(
+        "--prior", 
+        type=str,
+        default="normal",
+        help="Which prior to use on the weights. Normal or Horsehoe currently supported."
+    )
+    
+    parser.add_argument(
+        "--low_dimensional", 
+        action='store_true',
+        help="Whether to perform PCA first."
+    )
     return parser

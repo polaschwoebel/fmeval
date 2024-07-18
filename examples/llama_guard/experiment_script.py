@@ -102,7 +102,7 @@ def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_nam
             
         elif model_name == 'llama3' or model_name == 'llama3:70b':
             # do this locally for now so we have embeddings
-            model_status = ollama.generate('llama3', prompt = message + '\It is very important to follow this format, no extra text.') # need to include this because llama3 is verbose
+            model_status = ollama.generate(model_name, prompt = message + '\It is very important to follow this format, no extra text.') # need to include this because llama3 is verbose
             response = model_status['response']
             
         else: 
@@ -112,6 +112,7 @@ def run_experiment(dataset_name, model_name, adaption, parser_fn, experiment_nam
         # return_full_text is broken for some models, hack to fix this
         if response.startswith(message):
             response = response.split(message)[1]
+            
         
         results["raw_output"].append(response)
          
