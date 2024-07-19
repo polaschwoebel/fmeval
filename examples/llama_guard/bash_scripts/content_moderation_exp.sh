@@ -1,3 +1,0 @@
-python experiment_script.py --model llama3:70b --output_parser strict --dataset_name openai-content-moderation --experiment_folder results --adaptation_strategy few-shot --manual_examples --compute_embeddings
-python experiment_script.py --model llama3:70b --output_parser strict --dataset_name openai-content-moderation --experiment_folder results --adaptation_strategy zero-shot --compute_embeddings
-python experiment_script.py --model llama3:70b --output_parser strict --dataset_name openai-content-moderation --experiment_folder results --adaptation_strategy no-adapt --compute_embeddings

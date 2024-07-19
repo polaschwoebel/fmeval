@@ -9,8 +9,9 @@ from numpyro.diagnostics import summary
 from typing import Dict, List
 
 
-def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict, accuracy_with_deferral_logreg: Dict[List], 
-                       accuracy_with_random_deferral: Dict[List], accuracy_with_optimal_deferral: Dict[List], omit_range: List):
+def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float], accuracy_with_deferral_logreg: Dict[int, List[float]], 
+                       accuracy_with_random_deferral: Dict[int, List[float]], accuracy_with_optimal_deferral: Dict[int, List[float]], 
+                       omit_range: List[float], results_path: str):
     """_summary_
 
     Parameters
@@ -25,6 +26,8 @@ def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict, accuracy_wi
         Results from deferring optimally (multiple folds in a list).
     omit_range : List
         Different percentages of deferred datapoints at which the models models are evaluated. Usually  [0, 10, 20, 30, 40, 50, 60, 70, 80, 90].
+    results_path : str
+        Where to save the plot of results.
     """
     accs_per_fold_logreg = np.vstack([accuracy_with_deferral_logreg[fold] for fold in range(5)])
     accs_per_fold_random = np.vstack([accuracy_with_random_deferral[fold] for fold in range(5)])
@@ -46,7 +49,7 @@ def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict, accuracy_wi
     plt.xlim([0, 91])
     plt.legend(bbox_to_anchor=(1.1, 1.0))
     plt.ylim([0.6, 1.05])
-    plt.savefig('results/plots/deferral/openai_content_moderation_llama3_70b_500d_horseshoe.png', bbox_inches='tight')
+    plt.savefig(results_path, bbox_inches='tight')
 
 
 
@@ -86,7 +89,7 @@ def main(args):
     # 3. TODO: add additional baselines here!
     
     # plot everything
-    plot_deferral_accs(accuracy_with_deferral_bayesian_logreg, accuracy_with_deferral_logreg, accuracy_with_random_deferral, accuracy_with_optimal_deferral, omit_range)
+    plot_deferral_accs(accuracy_with_deferral_bayesian_logreg, accuracy_with_deferral_logreg, accuracy_with_random_deferral, accuracy_with_optimal_deferral, omit_range, args.results_path)
     
 
 if __name__ == "__main__":
