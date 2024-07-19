@@ -1,6 +1,7 @@
 import json
 import multiprocessing as mp
 import os
+import re
 
 import numpy as np
 import pandas as pd
@@ -51,8 +52,9 @@ from fmeval.eval_algorithms.util import (
     get_dataset_configs,
     aggregate_evaluation_scores,
     create_model_invocation_pipeline,
+    validate_prompt_template,
 )
-from fmeval.exceptions import EvalAlgorithmInternalError
+from fmeval.exceptions import EvalAlgorithmInternalError, EvalAlgorithmClientError
 from fmeval.transforms.common import GeneratePrompt, GetModelOutputs
 from fmeval.util import camel_to_snake, get_num_actors
 
@@ -287,6 +289,29 @@ def test_generate_prompt_column_for_dataset(test_case):
     assert sorted(returned_dataset.take(test_case.num_rows), key=lambda x: x["id"]) == test_case.expected_dataset
 
 
+def test_validate_prompt_template_success():
+    """
+    GIVEN a prompt_template and required placeholder keywords
+    WHEN validate_prompt_template is called
+    THEN no exception is raised
+    """
+    validate_prompt_template(
+        prompt_template='{"Question":$question, "Answer": $answer}', placeholders=["question", "answer"]
+    )
+
+
+def test_validate_prompt_template_raise_error():
+    """
+    GIVEN placeholder keywords and a prompt_template doesn't contain required placeholder
+    WHEN validate_prompt_template is called
+    THEN raise EvalAlgorithmClientError with correct error message
+    """
+    with pytest.raises(EvalAlgorithmClientError, match=re.escape("Unable to find placeholder")):
+        validate_prompt_template(
+            prompt_template='{"Question":$question, "Answer": $answer}', placeholders=["model_input"]
+        )
+
+
 @patch("ray.data.ActorPoolStrategy")
 @patch("ray.data.Dataset")
 def test_num_actors_in_generate_prompt_column_for_dataset(dataset, actor_pool_strategy):
@@ -375,7 +400,7 @@ def test_eval_output_record_str():
         list, and "scores" comes at the end.
     """
     record = EvalOutputRecord(
-        scores=[EvalScore(name="rouge", value=0.5), EvalScore(name="bert", value=0.4)],
+        scores=[EvalScore(name="rouge", value=0.5), EvalScore(name="bert", error="error generating bert score")],
         dataset_columns={
             DatasetColumns.MODEL_OUTPUT.value.name: "output",
             DatasetColumns.MODEL_INPUT.value.name: "input",
@@ -385,7 +410,7 @@ def test_eval_output_record_str():
         [
             (DatasetColumns.MODEL_INPUT.value.name, "input"),
             (DatasetColumns.MODEL_OUTPUT.value.name, "output"),
-            ("scores", [{"name": "rouge", "value": 0.5}, {"name": "bert", "value": 0.4}]),
+            ("scores", [{"name": "rouge", "value": 0.5}, {"name": "bert", "error": "error generating bert score"}]),
         ]
     )
     assert json.loads(str(record), object_pairs_hook=OrderedDict) == expected_record
@@ -401,16 +426,18 @@ def test_eval_output_record_from_row():
     row = {
         "rouge": 0.42,
         DatasetColumns.MODEL_OUTPUT.value.name: "output",
-        "bert": 0.162,
+        "bert": None,
         "invalid_col_1": "hello",
         DatasetColumns.MODEL_INPUT.value.name: "input",
         "invalid_col_2": "world",
+        DatasetColumns.ERROR.value.name: "error generating bert score",
     }
     expected_record = EvalOutputRecord(
-        scores=[EvalScore(name="rouge", value=0.42), EvalScore(name="bert", value=0.162)],
+        scores=[EvalScore(name="rouge", value=0.42), EvalScore(name="bert", error="error generating bert score")],
         dataset_columns={
             DatasetColumns.MODEL_INPUT.value.name: "input",
             DatasetColumns.MODEL_OUTPUT.value.name: "output",
+            DatasetColumns.ERROR.value.name: "error generating bert score",
         },
     )
 
