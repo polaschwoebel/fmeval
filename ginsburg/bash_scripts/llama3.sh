@@ -1,0 +1,1 @@
+python experiment_script.py --model llama3:70b --output_parser strict --dataset_name do-not-answer-extended --experiment_folder results/do_not_answer_extended --adaptation_strategy few-shot --compute_embeddings
