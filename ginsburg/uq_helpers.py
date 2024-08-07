@@ -37,7 +37,7 @@ def predict_blr(samples, X_test):
     p_test = sigmoid(np.array(f_test))
     return p_test
 
-def omit_least_certain(df, number_omitted=0, method='unsafe_prob'):
+def omit_least_certain(df, number_omitted=0, method='unsafe_prob', treat_omitted='drop'):
     """
     Filters a pandas DataFrame to remove the n rows with the lowest values
     in the specified "certainty" column.
@@ -61,9 +61,14 @@ def omit_least_certain(df, number_omitted=0, method='unsafe_prob'):
     # Sort the DataFrame by the certainty column in descending order
     sorted_df = df.sort_values(by='certainty', ascending=False)
 
-    # Drop the n rows with the lowest certainty values
-    filtered_df = sorted_df.drop(sorted_df.tail(number_omitted).index)
-
+    if treat_omitted == 'drop':
+        # Drop the n rows with the lowest certainty values, only evaluate on remaining.
+        filtered_df = sorted_df.drop(sorted_df.tail(number_omitted).index)
+    elif treat_omitted == 'keep':
+        # Replace the n rows with lowest certainty values with the correct label, to mimic obtaining 
+        # gold standard labels from a human labeller. 
+        filtered_df = sorted_df.copy()
+        filtered_df.loc[sorted_df.tail(number_omitted).index, 'response_binary'] = filtered_df.loc[sorted_df.tail(number_omitted).index,'label_binary']
     return filtered_df
 
 
@@ -79,7 +84,7 @@ def evaluate_folds_logistic_regression(df, omit_range):
         
         for p_omit in omit_range:
             omit = int(X_test.shape[0] * (p_omit / 100))
-            X_test_smaller = omit_least_certain(X_test, number_omitted=omit)
+            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, treat_omitted='keep')
             y_test = (X_test_smaller['label_binary'] == 'unsafe')
             y_pred_linear_model = X_test_smaller['unsafe_prob'] > 0.5
             y_pred_llm = (X_test_smaller['response_binary'] == 'unsafe')
@@ -96,7 +101,7 @@ def evaluate_folds_baselines(df, omit_range, baseline='random'):
         
         for p_omit in omit_range:
             omit = int(X_test.shape[0] * (p_omit / 100))
-            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method=baseline)
+            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method=baseline, treat_omitted='keep')
             y_test = (X_test_smaller['label_binary'] == 'unsafe')
             y_pred_llm = (X_test_smaller['response_binary'] == 'unsafe')
             acc = (y_pred_llm == y_test).mean()
@@ -115,7 +120,7 @@ def evaluate_bayesian_logistic_regression(df, train_indices, test_indices, p_tes
     
     for p_omit in tqdm(omit_range):
             omit = int(X_test.shape[0] * (p_omit / 100))
-            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='variance')
+            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='variance', treat_omitted='keep')
             y_test = (X_test_smaller['label_binary'] == 'unsafe')
             y_pred_llm = (X_test_smaller['response_binary'] == 'unsafe')
             acc = (y_pred_llm == y_test).mean()

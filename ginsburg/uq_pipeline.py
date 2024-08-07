@@ -32,10 +32,11 @@ def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float],
     accs_per_fold_logreg = np.vstack([accuracy_with_deferral_logreg[fold] for fold in range(5)])
     accs_per_fold_random = np.vstack([accuracy_with_random_deferral[fold] for fold in range(5)])
     accs_per_fold_optimal = np.vstack([accuracy_with_optimal_deferral[fold] for fold in range(5)])
-
+    baseline_acc = accs_per_fold_logreg.mean(axis=0)[0]
+    
     sns.set_style('darkgrid')
     sns.set(font_scale=1.4)
-    plt.hlines(y=accs_per_fold_logreg.mean(axis=0)[0], xmin=-10, xmax=110, color='black', linestyle='solid', label='baseline accuracy')
+    plt.hlines(y=baseline_acc, xmin=-10, xmax=110, color='black', linestyle='solid', label='LLM alone')
 
     plt.errorbar(omit_range, accs_per_fold_logreg.mean(axis=0), yerr=accs_per_fold_logreg.std(axis=0), capsize=2, linestyle='dashed', c='darkblue', label='accuracy after deferral (deterministic)')
 
@@ -44,11 +45,11 @@ def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float],
     plt.errorbar(omit_range, accs_per_fold_random.mean(axis=0), yerr=accs_per_fold_random.std(axis=0),   linestyle='dashed', c='goldenrod', label='accuracy after deferral (random)', marker='x')
     plt.errorbar(omit_range, accs_per_fold_optimal.mean(axis=0), yerr=accs_per_fold_optimal.std(axis=0),   linestyle='dashed', c='darkgreen', label='accuracy after deferral (optimal)', marker='x')
 
-    plt.xlabel('% of deferred datapoints')
-    plt.ylabel('Test accuracy (LLM)')
+    plt.xlabel('% of humanly labelled datapoints')
+    plt.ylabel('Test accuracy (LLM + human hybrid)')
     plt.xlim([0, 91])
     plt.legend(bbox_to_anchor=(1.1, 1.0))
-    plt.ylim([0.6, 1.05])
+    plt.ylim([baseline_acc - 0.05, 1.01])
     plt.savefig(results_path, bbox_inches='tight')
 
 

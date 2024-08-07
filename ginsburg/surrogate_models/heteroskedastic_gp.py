@@ -1,25 +1,23 @@
+from distro import like
 import torch
 import pyro
 import gpytorch
+import numpy as np
+import matplotlib.pyplot as plt
+from .gp_helpers import plot_preds
+from tqdm import tqdm, trange
 
 # WORK IN PROGRESS
 class HeteroskedasticGP(gpytorch.models.ApproximateGP):
     
-    def __init__(self, num_inducing=64, name_prefix="heteroskedastic_gp"):
+    def __init__(self, D, inducing_points, name_prefix="heteroskedastic_gp"): # D is the dimensionality of the problem
         
         self.name_prefix = name_prefix
 
-        # Define all the variational stuff
-        inducing_points_task_one = torch.linspace(-1, 1, num_inducing)
-        inducing_points_task_two = torch.linspace(-1, 1, num_inducing)
-        
-        inducing_points = torch.stack([inducing_points_task_one.unsqueeze(1), 
-                                       inducing_points_task_two.unsqueeze(1)])
-        
         # We have to mark the CholeskyVariationalDistribution as batch
         # so that we learn a variational distribution for each task (we have 2):
         variational_distribution = gpytorch.variational.CholeskyVariationalDistribution(
-            num_inducing_points=inducing_points.size(-2), 
+            num_inducing_points=inducing_points.size(-2), # 64
             batch_shape=torch.Size([2]))
         
         single_variational_strategy = gpytorch.variational.VariationalStrategy(
@@ -29,18 +27,22 @@ class HeteroskedasticGP(gpytorch.models.ApproximateGP):
         # Linear Model of Coregionalization one, so the two
         # tasks (and therefore latent GPs) are assumed to be
         # somehow related (and we learn such relationship):
-        variational_strategy = gpytorch.variational.LMCVariationalStrategy(single_variational_strategy,
+        variational_strategy = gpytorch.variational.LMCVariationalStrategy(single_variational_strategy, # Are f and g independent in the Saul paper? Use IndependentMultitaskVariationalStrategy instead?
                                                                            num_tasks=2,
                                                                            num_latents=2)
+        # variational_strategy = gpytorch.variational.IndependentMultitaskVariationalStrategy(single_variational_strategy, # Are f and g independent in the Saul paper? Use IndependentMultitaskVariationalStrategy instead?
+        #                                                             num_tasks=2)
+        
+        
         # Standard initializtation
         super().__init__(variational_strategy)
         
         # The mean and covariance modules should be marked as batch
         # so we learn a different set of hyperparameters:
-        self.mean_module = gpytorch.means.ConstantMean(batch_shape=torch.Size([2]))
+        self.mean_module = gpytorch.means.ConstantMean(batch_shape=torch.Size([2])) # 2 mean functions (one for f, one for g)
         
-        self.covar_module = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.RBFKernel(batch_shape=torch.Size([2])),
+        self.covar_module = gpytorch.kernels.ScaleKernel(  # 2 covariance functions (one for f, one for g)
+            gpytorch.kernels.RBFKernel(batch_shape=torch.Size([2])), 
             batch_shape=torch.Size([2])
         )
 
@@ -49,9 +51,10 @@ class HeteroskedasticGP(gpytorch.models.ApproximateGP):
         # dimension in batch
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+        latent_function_values = gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+        return latent_function_values
 
-    def guide(self, x, y):
+    def guide(self, x, y): # guide in pyro is just their term for variational distribution
         
         # Get q(f) - variational (guide) distribution of latent function
         function_dist = self.pyro_guide(x)
@@ -59,7 +62,8 @@ class HeteroskedasticGP(gpytorch.models.ApproximateGP):
         # Use a plate here to mark conditional independencies.
         # Our samples are of shape (nobs, 2), therefore the dim=-2
         # in the plate:
-        with pyro.plate(self.name_prefix + ".data_plate", dim=-2):
+        with pyro.plate(self.name_prefix + ".data_plate", dim=-2): # plate is essentially an automatically vectorized/parallelized for loop over the dimensions
+            # guide and model must have matching variable names
             
             # Sample from latent function distribution
             function_samples = pyro.sample(self.name_prefix + ".f(x)", function_dist)
@@ -75,10 +79,10 @@ class HeteroskedasticGP(gpytorch.models.ApproximateGP):
         # Our samples are of shape (nobs, 2), therefore the dim=-2
         # in the plate:
         with pyro.plate(self.name_prefix + ".data_plate", dim=-2):
+            # guide and model must have matching variable names
             
             # Sample from latent function distribution
             function_samples = pyro.sample(self.name_prefix + ".f(x)", function_dist)
-            
             mean_samples = function_samples[...,0]
             std_samples = function_samples[...,1]
             
@@ -89,3 +93,22 @@ class HeteroskedasticGP(gpytorch.models.ApproximateGP):
             return pyro.sample(self.name_prefix + ".y",
                                pyro.distributions.Normal(mean_samples, transformed_std_samples),
                                obs=y)
+            
+# training routine:
+def train(model, likelihood, train_x, train_y, num_particles, num_iter):
+    model.train()
+    likelihood.train()
+    
+    optimizer = pyro.optim.Adam({"lr": 0.01})
+    elbo = pyro.infer.Trace_ELBO(num_particles=num_particles, vectorize_particles=True, retain_graph=True) # particles = samples to compute gradients
+    svi = pyro.infer.SVI(model.model, model.guide, optimizer, elbo)
+
+
+    
+    pbar = trange(num_iter)
+    for i in pbar:
+        model.zero_grad()
+        loss = svi.step(torch.from_numpy(train_x).float(), torch.from_numpy(train_y).float())
+        pbar.set_postfix(ELBO=loss)
+
+    return model
