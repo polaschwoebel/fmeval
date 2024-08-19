@@ -109,7 +109,7 @@ def evaluate_folds_baselines(df, omit_range, baseline='random'):
     return accuracy_with_deferral
 
 
-def evaluate_bayesian_logistic_regression(df, train_indices, test_indices, p_test, omit_range):
+def evaluate_bayesian_model(df, train_indices, test_indices, p_test, omit_range):
     accuracy_with_deferral = dict()
 
     # X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(df, y, train_size=0.5, random_state=2, shuffle=True) 

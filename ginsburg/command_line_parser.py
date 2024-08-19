@@ -81,6 +81,13 @@ def create_parser():
     )  
     
     parser.add_argument(
+        "--gp_path", 
+        type=str,
+        default="",
+        help="From where to load the gp results?",
+    )  
+        
+    parser.add_argument(
         "--prior", 
         type=str,
         default="normal",
