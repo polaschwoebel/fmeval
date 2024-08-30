@@ -76,6 +76,7 @@ def main(args):
     print('Nr dimensions', results_model_horseshoe_500dim['samples']['beta'].shape[1])
     print('Median r_hat:', np.mean(summary_dict['beta']['r_hat']))
     print('Median n_eff:', np.mean(summary_dict['beta']['n_eff']))
+    
 
     # # compute accuracies after deferral for different models
     omit_range = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]

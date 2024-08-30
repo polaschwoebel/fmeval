@@ -37,7 +37,7 @@ def predict_blr(samples, X_test):
     p_test = sigmoid(np.array(f_test))
     return p_test
 
-def omit_least_certain(df, number_omitted=0, method='unsafe_prob', treat_omitted='drop'):
+def omit_least_certain(df, number_omitted=0, method='unsafe_prob_entropy', treat_omitted='drop'):
     """
     Filters a pandas DataFrame to remove the n rows with the lowest values
     in the specified "certainty" column.
@@ -50,10 +50,9 @@ def omit_least_certain(df, number_omitted=0, method='unsafe_prob', treat_omitted
     Returns:
         pandas.DataFrame: The filtered DataFrame with the n slowest certainty items removed.
     """
-    if method == 'unsafe_prob':
-        df['certainty'] = np.abs(0.5 - df['unsafe_prob'])
-    elif method == 'variance':
-        df['certainty'] = - df['unsafe_prob_variance']
+    if method == 'unsafe_prob_entropy':
+        entropy = - (np.log(df['unsafe_prob'])* df['unsafe_prob'] + np.log(1 - df['unsafe_prob'])* (1 - df['unsafe_prob']))
+        df['certainty'] = 1 / entropy
     elif method=='random': # omitting datapoints at random
         df['certainty'] = np.random.rand(len(df))
     elif method == 'optimal': # omit incorrectly predicted points always     
@@ -84,7 +83,7 @@ def evaluate_folds_logistic_regression(df, omit_range):
         
         for p_omit in omit_range:
             omit = int(X_test.shape[0] * (p_omit / 100))
-            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, treat_omitted='keep')
+            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='unsafe_prob_entropy', treat_omitted='keep')
             y_test = (X_test_smaller['label_binary'] == 'unsafe')
             y_pred_linear_model = X_test_smaller['unsafe_prob'] > 0.5
             y_pred_llm = (X_test_smaller['response_binary'] == 'unsafe')
@@ -116,11 +115,13 @@ def evaluate_bayesian_model(df, train_indices, test_indices, p_test, omit_range)
     X_train = df.iloc[train_indices]    
     X_test = df.iloc[test_indices]
     #^ make sure it's the same than what mcmc was run on
-    X_test['unsafe_prob_variance'] = p_test.var(axis=0)
+    
+    # compute predictive posterior by averaging 
+    X_test['unsafe_prob'] = p_test.mean(axis=0)
     
     for p_omit in tqdm(omit_range):
             omit = int(X_test.shape[0] * (p_omit / 100))
-            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='variance', treat_omitted='keep')
+            X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='unsafe_prob_entropy', treat_omitted='keep')
             y_test = (X_test_smaller['label_binary'] == 'unsafe')
             y_pred_llm = (X_test_smaller['response_binary'] == 'unsafe')
             acc = (y_pred_llm == y_test).mean()
