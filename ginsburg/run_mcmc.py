@@ -11,20 +11,20 @@ import sklearn
 from sklearn import model_selection
 import numpy as np
 import pandas as pd
-import ast
 import test
 from uq_helpers import extract_embeddings, sigmoid
 import command_line_parser
 from sklearn.decomposition import PCA
+import torch
+from tqdm import tqdm
 
 # run Markov Chain Monte Carlo to fit the Bayesian logistic regression model
 def mcmc(args):
+    # load embeddings
     model_df = pd.read_csv(args.embeddings_path)
     embeddings = extract_embeddings(model_df)
     y_model = (model_df['response_binary'] == 'unsafe').values.astype(float)
     y_human = (model_df['label_binary'] == 'unsafe').values.astype(float)
-
-
     if args.surrogate_labels == 'model_response':
         y = y_model
     elif args.surrogate_labels == 'human_response':
@@ -36,6 +36,9 @@ def mcmc(args):
     indices = np.arange(len(y))
     X_train, X_test, y_train, y_test, train_indices, test_indices = model_selection.train_test_split(embeddings, y, indices, train_size=0.5, random_state=2, shuffle=True)
     
+    # if args.normalize:
+    #     X_train = 
+    
     if args.low_dimensional:
         nr_dims_pca = 500
         pca_decomp = PCA(n_components=nr_dims_pca).fit(X_train)
@@ -43,7 +46,7 @@ def mcmc(args):
         X_test = pca_decomp.transform(X_test)
 
     
-    N, D = X_train.shape # [500, 8192]
+    N, D = X_train.shape # [500, 4096]
     
     data = np.hstack([X_train, y_train.reshape(-1, 1)])
     
@@ -55,7 +58,7 @@ def mcmc(args):
     ones_D = jnp.ones((D))
 
     def bayesian_linear_regression(data, prior='normal'):
-        observations = data[:, :-1] # [500, 8192] x
+        observations = data[:, :-1] # [500, 4096] x
         labels = data[:, -1] # y
         
         # horseshoe prior
@@ -91,7 +94,7 @@ def mcmc(args):
     # make and save predictions as well
     f_train =  samples['alpha'].reshape(-1, 1) + np.matmul(samples['beta'], X_train.T) # [nr_datapoints, nr_samples]
     f_test =  samples['alpha'].reshape(-1, 1) + np.matmul(samples['beta'], X_test.T)
-    p_train = sigmoid(f_train) # [nr_datapoints, nr_samples] --> variance accross second dim --> nr_datapoints
+    p_train = sigmoid(f_train) # [nr_datapoints, nr_samples] --> mean accross second dim --> nr_datapoints
     p_test = sigmoid(f_test)
     y_pred_train = (p_train.mean(axis=0) > 0.5).astype(float)
     y_pred_test = (p_test.mean(axis=0) > 0.5).astype(float)
@@ -106,7 +109,7 @@ def mcmc(args):
                'p_test': p_test, 'p_train': p_train,
                'samples': samples, 'train_indices': train_indices, 'test_indices': test_indices, 'train_acc': train_acc, 'test_acc_surrogate_labels': test_acc, 'test_acc_human_labels': test_acc_human}
     dims = nr_dims_pca if args.low_dimensional else 'full' 
-    with open(f'results/mcmc/{args.results_path}/srgtlabels={args.surrogate_labels}_prior={args.prior}_D={dims}.p', 'wb') as handle:
+    with open(f'results/mcmc/{args.results_path}/model={args.model}_srgtlabels={args.surrogate_labels}_prior={args.prior}_D={dims}.p', 'wb') as handle:
         pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     print('MCMC completed, summary:')

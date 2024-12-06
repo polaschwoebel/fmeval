@@ -16,6 +16,7 @@ import command_line_parser
 from sklearn.decomposition import PCA
 from surrogate_models.heteroskedastic_gp import HeteroskedasticGP, train
 from surrogate_models.homoskedastic_gp import HomoskedasticGP, train_homoskedastic
+from surrogate_models.deep_kernel_gp import train_dkgp
 import torch
 import gpytorch
 import matplotlib.pyplot as plt
@@ -61,7 +62,7 @@ def fit_gp(args):
 
     # start with homeoskedastic model
     inducing_points = torch.from_numpy(inducing_points.copy()).float()
-    model = HomoskedasticGP(inducing_points=inducing_points, D=D, name_prefix="homeoskedastic_gp")
+    # model = HomoskedasticGP(inducing_points=inducing_points, D=D, name_prefix="homeoskedastic_gp")
     
     # extra stuff for heteroskedastic model
     # inducing_points_task_two = torch.from_numpy(inducing_points.copy()).float()
@@ -74,8 +75,8 @@ def fit_gp(args):
     # Train the GP:
     num_iter = 1000
     num_particles = 512 # 256
-    model = train_homoskedastic(model,  X_train, y_train, num_particles, num_iter)
-    
+    # model = train_homoskedastic(model,  X_train, y_train, num_particles, num_iter)
+    model = train_dkgp(X_train, y_train)
 
     # Predict:
     X_train = torch.from_numpy(X_train.copy()).float()

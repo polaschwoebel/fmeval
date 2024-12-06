@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from .gp_helpers import plot_preds
 from tqdm import tqdm, trange
 
-# WORK IN PROGRESS
 class HomoskedasticGP(gpytorch.models.ApproximateGP):
     
     def __init__(self, D, inducing_points, name_prefix="heteroskedastic_gp"): # D is the dimensionality of the problem

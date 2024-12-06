@@ -6,10 +6,10 @@ from collections import defaultdict
 from tqdm import tqdm
 
 def preprocess_embeddings(df):
-    try:
-     df['prompt_embeddings'] = df['prompt_embeddings'].map(lambda string_list: np.array([float(x) for x in ast.literal_eval(string_list)]))
-    except:
-        print('already processed')
+    #try:
+    df['prompt_embeddings'] = df['prompt_embeddings'].map(lambda string_list: np.array([float(x) for x in ast.literal_eval(string_list)]))
+    #except:
+    #    print('already processed')
     return df
 
 

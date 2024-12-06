@@ -10,7 +10,7 @@ from typing import Dict, List
 
 
 def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float], accuracy_with_deferral_logreg: Dict[int, List[float]], 
-                       accuracy_with_deferral_gp: Dict[int, List[float]],
+                       # accuracy_with_deferral_gp: Dict[int, List[float]],
                        accuracy_with_random_deferral: Dict[int, List[float]], accuracy_with_optimal_deferral: Dict[int, List[float]], 
                        omit_range: List[float], results_path: str):
     """_summary_
@@ -42,7 +42,7 @@ def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float],
     plt.errorbar(omit_range, accs_per_fold_logreg.mean(axis=0), yerr=accs_per_fold_logreg.std(axis=0), capsize=2, linestyle='dashed', c='darkblue', label='accuracy after deferral (deterministic)')
 
     plt.plot(omit_range, accuracy_with_deferral_bayesian_logreg.values(),  linestyle='dashed', label=f'accuracy after deferral (Bayesian regression)', marker='x', c='darkred')
-    plt.plot(omit_range, accuracy_with_deferral_gp.values(),  linestyle='dashed', label=f'accuracy after deferral (GP)', marker='x', c='lightskyblue')
+    # plt.plot(omit_range, accuracy_with_deferral_gp.values(),  linestyle='dashed', label=f'accuracy after deferral (GP)', marker='x', c='lightskyblue')
 
     plt.errorbar(omit_range, accs_per_fold_random.mean(axis=0), yerr=accs_per_fold_random.std(axis=0),   linestyle='dashed', c='goldenrod', label='accuracy after deferral (random)', marker='x')
     plt.errorbar(omit_range, accs_per_fold_optimal.mean(axis=0), yerr=accs_per_fold_optimal.std(axis=0),   linestyle='dashed', c='darkgreen', label='accuracy after deferral (optimal)', marker='x')
@@ -76,7 +76,6 @@ def main(args):
     print('Nr dimensions', results_model_horseshoe_500dim['samples']['beta'].shape[1])
     print('Median r_hat:', np.mean(summary_dict['beta']['r_hat']))
     print('Median n_eff:', np.mean(summary_dict['beta']['n_eff']))
-    
 
     # # compute accuracies after deferral for different models
     omit_range = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
@@ -90,17 +89,19 @@ def main(args):
     accuracy_with_random_deferral = evaluate_folds_baselines(llm_df, omit_range=omit_range, baseline='random')
     accuracy_with_optimal_deferral = evaluate_folds_baselines(llm_df, omit_range=omit_range, baseline='optimal')
     
-    # 3. GP
-    with open(args.gp_path, 'rb') as handle:
-        results_gp = pickle.load(handle)
-    print("The GP train and test accuracies are", results_gp['train_acc'], results_gp['test_acc_surrogate_labels'])
-    accuracy_with_deferral_gp = evaluate_bayesian_model(llm_df, train_indices=results_gp['train_indices'], 
-                                                                                   test_indices=results_gp['test_indices'], p_test=results_gp['p_test'], omit_range=omit_range)
+    # # 3. GP
+    # with open(args.gp_path, 'rb') as handle:
+    #     results_gp = pickle.load(handle)
+    # print("The GP train and test accuracies are", results_gp['train_acc'], results_gp['test_acc_surrogate_labels'])
+    # accuracy_with_deferral_gp = evaluate_bayesian_model(llm_df, train_indices=results_gp['train_indices'], 
+    #                                                                                test_indices=results_gp['test_indices'], p_test=results_gp['p_test'], omit_range=omit_range)
 
     # TODO: add additional baselines here!
     
     # plot everything
-    plot_deferral_accs(accuracy_with_deferral_bayesian_logreg, accuracy_with_deferral_logreg, accuracy_with_deferral_gp, accuracy_with_random_deferral, accuracy_with_optimal_deferral, omit_range, args.results_path)
+    plot_deferral_accs(accuracy_with_deferral_bayesian_logreg, accuracy_with_deferral_logreg, 
+                       #accuracy_with_deferral_gp, 
+                       accuracy_with_random_deferral, accuracy_with_optimal_deferral, omit_range, args.results_path)
     
 
 if __name__ == "__main__":

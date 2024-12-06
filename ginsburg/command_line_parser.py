@@ -67,6 +67,13 @@ def create_parser():
     )
     
     parser.add_argument(
+        "--labels_path", 
+        type=str,
+        default="",
+        help="From where to load the ground truth labels?",
+    )
+    
+    parser.add_argument(
         "--embeddings_path", 
         type=str,
         default="",
@@ -99,4 +106,13 @@ def create_parser():
         action='store_true',
         help="Whether to perform PCA first."
     )
+    
+        
+    parser.add_argument(
+        "--train_set_size", 
+        type=int,
+        default=1000,
+        help="Training set size for embedding-based models."
+    )
+    
     return parser
