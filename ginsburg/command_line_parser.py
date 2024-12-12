@@ -88,6 +88,13 @@ def create_parser():
     )  
     
     parser.add_argument(
+        "--logreg_path", 
+        type=str,
+        default="",
+        help="From where to load the logistic regression results?",
+    )  
+    
+    parser.add_argument(
         "--gp_path", 
         type=str,
         default="",

@@ -34,7 +34,7 @@ def mcmc(args):
         return
     
     indices = np.arange(len(y))
-    X_train, X_test, y_train, y_test, train_indices, test_indices = model_selection.train_test_split(embeddings, y, indices, train_size=0.5, random_state=2, shuffle=True)
+    X_train, X_test, y_train, y_test, train_indices, test_indices = model_selection.train_test_split(embeddings, y, indices, train_size=args.train_set_size, random_state=2, shuffle=True)
     
     # if args.normalize:
     #     X_train = 
@@ -109,7 +109,7 @@ def mcmc(args):
                'p_test': p_test, 'p_train': p_train,
                'samples': samples, 'train_indices': train_indices, 'test_indices': test_indices, 'train_acc': train_acc, 'test_acc_surrogate_labels': test_acc, 'test_acc_human_labels': test_acc_human}
     dims = nr_dims_pca if args.low_dimensional else 'full' 
-    with open(f'results/mcmc/{args.results_path}/model={args.model}_srgtlabels={args.surrogate_labels}_prior={args.prior}_D={dims}.p', 'wb') as handle:
+    with open(f'results/mcmc/{args.results_path}/model={args.model}_srgtlabels={args.surrogate_labels}_prior={args.prior}_D={dims}_Ntrain={args.train_set_size}.p', 'wb') as handle:
         pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     print('MCMC completed, summary:')

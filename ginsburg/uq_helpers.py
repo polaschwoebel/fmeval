@@ -71,16 +71,38 @@ def omit_least_certain(df, number_omitted=0, method='unsafe_prob_entropy', treat
     return filtered_df
 
 
-def evaluate_folds_logistic_regression(df, omit_range):
+# def evaluate_folds_logistic_regression(df, omit_range):
+#     accuracy_with_deferral = defaultdict(list)
+#     y = (df['response_binary'] == 'unsafe').astype(float)
+    
+#     for fold in tqdm(range(5)):
+#         X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(df, y, train_size=0.5, random_state=fold, shuffle=True)
+#         train_embeddings, test_embeddings = extract_embeddings(X_train), extract_embeddings(X_test)    
+#         linear_model = LogisticRegression(random_state=0).fit(train_embeddings, y_train) # c=1 is default, regularize more to obtain higher uncertainties
+#         X_test['unsafe_prob'] = linear_model.predict_proba(test_embeddings)[:, 1]
+        
+#         for p_omit in omit_range:
+#             omit = int(X_test.shape[0] * (p_omit / 100))
+#             X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='unsafe_prob_entropy', treat_omitted='keep')
+#             y_test = (X_test_smaller['label_binary'] == 'unsafe')
+#             y_pred_linear_model = X_test_smaller['unsafe_prob'] > 0.5
+#             y_pred_llm = (X_test_smaller['response_binary'] == 'unsafe')
+#             acc = (y_pred_llm == y_test).mean()
+#             accuracy_with_deferral[fold].append(acc)
+#     return accuracy_with_deferral
+
+
+def evaluate_folds_logistic_regression(df, train_indices, test_indices, p_test, omit_range):
+    # train_indices, test_indices, p_test are per fold
+    
     accuracy_with_deferral = defaultdict(list)
     y = (df['response_binary'] == 'unsafe').astype(float)
     
     for fold in tqdm(range(5)):
-        X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(df, y, train_size=0.5, random_state=fold, shuffle=True)
-        train_embeddings, test_embeddings = extract_embeddings(X_train), extract_embeddings(X_test)    
-        linear_model = LogisticRegression(random_state=0).fit(train_embeddings, y_train) # c=1 is default, regularize more to obtain higher uncertainties
-        X_test['unsafe_prob'] = linear_model.predict_proba(test_embeddings)[:, 1]
-        
+        X_train = df.iloc[train_indices[fold]]    
+        X_test = df.iloc[test_indices[fold]]
+        X_test['unsafe_prob'] = p_test[fold]
+           
         for p_omit in omit_range:
             omit = int(X_test.shape[0] * (p_omit / 100))
             X_test_smaller = omit_least_certain(X_test, number_omitted=omit, method='unsafe_prob_entropy', treat_omitted='keep')
@@ -90,6 +112,7 @@ def evaluate_folds_logistic_regression(df, omit_range):
             acc = (y_pred_llm == y_test).mean()
             accuracy_with_deferral[fold].append(acc)
     return accuracy_with_deferral
+
 
 def evaluate_folds_baselines(df, omit_range, baseline='random'):
     accuracy_with_deferral = defaultdict(list)

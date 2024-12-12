@@ -1,4 +1,4 @@
-SURROGATE_LABELS=('human_response') # 'model_response')
+SURROGATE_LABELS=('human_response')
 model='Mixtral-8x7B-Instruct'
 
 for ix in {0..0}

@@ -9,10 +9,13 @@ from numpyro.diagnostics import summary
 from typing import Dict, List
 
 
-def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float], accuracy_with_deferral_logreg: Dict[int, List[float]], 
-                       # accuracy_with_deferral_gp: Dict[int, List[float]],
-                       accuracy_with_random_deferral: Dict[int, List[float]], accuracy_with_optimal_deferral: Dict[int, List[float]], 
-                       omit_range: List[float], results_path: str):
+def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float]=None, 
+                       accuracy_with_deferral_logreg: Dict[int, List[float]]=None, 
+                       accuracy_with_deferral_gp: Dict[int, List[float]]=None,
+                       accuracy_with_random_deferral: Dict[int, List[float]]=None, 
+                       accuracy_with_optimal_deferral: Dict[int, List[float]]=None, 
+                       omit_range: List[float]=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90], 
+                       results_path: str=""):
     """_summary_
 
     Parameters
@@ -29,24 +32,34 @@ def plot_deferral_accs(accuracy_with_deferral_bayesian_logreg: Dict[int, float],
         Different percentages of deferred datapoints at which the models models are evaluated. Usually  [0, 10, 20, 30, 40, 50, 60, 70, 80, 90].
     results_path : str
         Where to save the plot of results.
-    """
-    accs_per_fold_logreg = np.vstack([accuracy_with_deferral_logreg[fold] for fold in range(5)])
-    accs_per_fold_random = np.vstack([accuracy_with_random_deferral[fold] for fold in range(5)])
-    accs_per_fold_optimal = np.vstack([accuracy_with_optimal_deferral[fold] for fold in range(5)])
-    baseline_acc = accs_per_fold_logreg.mean(axis=0)[0]
+    """    
     
+    # set up plotting
     sns.set_style('darkgrid')
     sns.set(font_scale=1.4)
+
+    # plot logistic regression models
+    accs_per_fold_logreg = np.vstack([accuracy_with_deferral_logreg[fold] for fold in range(5)])
+    plt.errorbar(omit_range, accs_per_fold_logreg.mean(axis=0), yerr=accs_per_fold_logreg.std(axis=0), capsize=2, linestyle='dashed', c='darkblue', label='logistic regression')
+    
+    # plot bayesian logistic regression models
+    plt.plot(omit_range, accuracy_with_deferral_bayesian_logreg.values(),  linestyle='dashed', label=f'Bayesian logistic regression', marker='x', c='darkred')
+
+    if accuracy_with_deferral_gp:
+        plt.plot(omit_range, accuracy_with_deferral_gp.values(),  linestyle='dashed', label=f'GP', marker='x', c='lightskyblue')
+
+
+    # always plot these baselines
+    # accuracy, LLM alone (this corresponds to the LLM accuracy since at index [0] no samples are omitted)
+    baseline_acc = accs_per_fold_logreg.mean(axis=0)[0]
     plt.hlines(y=baseline_acc, xmin=-10, xmax=110, color='black', linestyle='solid', label='LLM alone')
+    
+    accs_per_fold_random = np.vstack([accuracy_with_random_deferral[fold] for fold in range(5)])
+    accs_per_fold_optimal = np.vstack([accuracy_with_optimal_deferral[fold] for fold in range(5)])
+    plt.errorbar(omit_range, accs_per_fold_random.mean(axis=0), yerr=accs_per_fold_random.std(axis=0),   linestyle='dashed', c='goldenrod', label='random', marker='x')
+    plt.errorbar(omit_range, accs_per_fold_optimal.mean(axis=0), yerr=accs_per_fold_optimal.std(axis=0),   linestyle='dashed', c='darkgreen', label='optimal', marker='x')
 
-    plt.errorbar(omit_range, accs_per_fold_logreg.mean(axis=0), yerr=accs_per_fold_logreg.std(axis=0), capsize=2, linestyle='dashed', c='darkblue', label='accuracy after deferral (deterministic)')
-
-    plt.plot(omit_range, accuracy_with_deferral_bayesian_logreg.values(),  linestyle='dashed', label=f'accuracy after deferral (Bayesian regression)', marker='x', c='darkred')
-    # plt.plot(omit_range, accuracy_with_deferral_gp.values(),  linestyle='dashed', label=f'accuracy after deferral (GP)', marker='x', c='lightskyblue')
-
-    plt.errorbar(omit_range, accs_per_fold_random.mean(axis=0), yerr=accs_per_fold_random.std(axis=0),   linestyle='dashed', c='goldenrod', label='accuracy after deferral (random)', marker='x')
-    plt.errorbar(omit_range, accs_per_fold_optimal.mean(axis=0), yerr=accs_per_fold_optimal.std(axis=0),   linestyle='dashed', c='darkgreen', label='accuracy after deferral (optimal)', marker='x')
-
+    plt.title("Accuracy after deferral")
     plt.xlabel('% of humanly labelled datapoints')
     plt.ylabel('Test accuracy (LLM + human hybrid)')
     plt.xlim([0, 91])
@@ -65,6 +78,10 @@ def main(args):
     acc = (y_pred == y).mean()
     print("The baseline LLM accuracy is", acc)
 
+    # compute accuracies after deferral for different models
+    omit_range = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+    
+    #1. bayesian logistic regression
     # load MCMC results (those are produced using the `run_mcmc.py` script)
     with open(args.mcmc_path, 'rb') as handle:
         results_model_horseshoe_500dim = pickle.load(handle)
@@ -76,20 +93,21 @@ def main(args):
     print('Nr dimensions', results_model_horseshoe_500dim['samples']['beta'].shape[1])
     print('Median r_hat:', np.mean(summary_dict['beta']['r_hat']))
     print('Median n_eff:', np.mean(summary_dict['beta']['n_eff']))
-
-    # # compute accuracies after deferral for different models
-    omit_range = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
-    #1. bayesian logistic regression
     mcmc_results = results_model_horseshoe_500dim
     accuracy_with_deferral_bayesian_logreg = evaluate_bayesian_model(llm_df, train_indices=mcmc_results['train_indices'], 
                                                                                    test_indices=mcmc_results['test_indices'], p_test=mcmc_results['p_test'], omit_range=omit_range)
     # 2. logistic regression 
-    accuracy_with_deferral_logreg = evaluate_folds_logistic_regression(llm_df, omit_range)
-    # baselines: optimal & random
+    # load logistic regression results (those are produced using the `run_logistic_regression.py` script)
+    with open(args.logreg_path, 'rb') as handle:
+        results_logreg = pickle.load(handle)
+    accuracy_with_deferral_logreg = evaluate_folds_logistic_regression(llm_df, results_logreg["train_indices"], results_logreg["test_indices"], results_logreg["p_test"], omit_range)
+    
+    # 3. baselines: optimal & random
     accuracy_with_random_deferral = evaluate_folds_baselines(llm_df, omit_range=omit_range, baseline='random')
     accuracy_with_optimal_deferral = evaluate_folds_baselines(llm_df, omit_range=omit_range, baseline='optimal')
     
     # # 3. GP
+    # load results
     # with open(args.gp_path, 'rb') as handle:
     #     results_gp = pickle.load(handle)
     # print("The GP train and test accuracies are", results_gp['train_acc'], results_gp['test_acc_surrogate_labels'])
@@ -99,9 +117,14 @@ def main(args):
     # TODO: add additional baselines here!
     
     # plot everything
-    plot_deferral_accs(accuracy_with_deferral_bayesian_logreg, accuracy_with_deferral_logreg, 
-                       #accuracy_with_deferral_gp, 
-                       accuracy_with_random_deferral, accuracy_with_optimal_deferral, omit_range, args.results_path)
+    plot_deferral_accs(
+        accuracy_with_deferral_bayesian_logreg=accuracy_with_deferral_bayesian_logreg, 
+        accuracy_with_deferral_logreg=accuracy_with_deferral_logreg, 
+        # accuracy_with_deferral_gp=accuracy_with_deferral_gp, 
+        accuracy_with_random_deferral=accuracy_with_random_deferral, 
+        accuracy_with_optimal_deferral=accuracy_with_optimal_deferral,
+        omit_range=omit_range, 
+        results_path=args.results_path)
     
 
 if __name__ == "__main__":
